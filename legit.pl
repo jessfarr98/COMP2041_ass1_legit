@@ -14,17 +14,25 @@ use File::Copy;
 #to make it less computationally expensive separate by argument numbers so it doesn't have to analyse several if statements to execute
 
 #separate each command into functions in case they require each other's features
+my @commit_array;
+
 
 if ($ARGV[0] eq "init") {
 	init();
+
 } elsif ($ARGV[0] eq "add") {
 	my @files = @ARGV[1..$#ARGV];
 
 	add(@files);
 
+#NOTE: this needs an if for when there's -a included 
 } elsif ($ARGV[0] eq "commit") {
+	my $message = $ARGV[2];
 
+	#need to pass in a refernce so that its changed outside of the function scope
+	commit($message, @commit_array);
 
+	#print the commit array
 
 } elsif ($ARGV[0] eq "log") {
 
@@ -34,7 +42,14 @@ if ($ARGV[0] eq "init") {
 
 
 
+} elsif ($ARGV[0] eq "rm") {
+
+
+} elsif ($ARGV[0] eq "status") {
+
+
 }
+#SUBSET 0 subroutines:
 
 #A function to initialise the repository if required
 sub init {
@@ -51,6 +66,8 @@ sub init {
 
 		#in addition, create subdirectory for add called .index for the add files
 		mkdir ".index";
+		#my $legit = ".legit";
+		#my $index = ".index";
 	}
 }
 
@@ -59,10 +76,10 @@ sub init {
 #think about using function signatures?
 sub add {
 	my (@add_files) = @_;
-	print join "\n", @add_files;
-	print "\nmoving the files into the .index directory\n";
+	#print join "\n", @add_files;
+	#print "\nmoving the files into the .index directory\n";
 	while(my $element = shift @add_files){
-		print "element is $element\n";
+		#print "element is $element\n";
 
 		#create a copy of the file
 		my $temp = ".".$element;
@@ -75,7 +92,6 @@ sub add {
 		my $dir = ".index";
 		move "$temp", "$dir";
 
-
 		close $TEMP;
 		close $FILE
 	}
@@ -86,24 +102,30 @@ sub add {
 #if the index is empty then say nothing to commit.
 #empty the index after committing
 sub commit {
-	
-
-
-
+	my ($message, @commits) = @_;
+	print "$message\n";
+	#create an directory callled .commit.n where n = @commits+1
+	#move all the files in .index into .commit.n. Note move not copy
+	#move the .commit.n directory into the .legit directory
 }
 
-#have an array that stores every commit that has been made
+#have an array that stores every commit's message in the corresponding commits message
+#print these messages 
 sub log {
 
 
 }
 
-
+#go to the specified commit directory in the .legit directory and print the specified files in the subsequent dir.
 sub show {
 
 
 
 }
+
+#SUBSET 1 subroutines
+
+
 
 
 
