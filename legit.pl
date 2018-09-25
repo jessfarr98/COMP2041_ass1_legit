@@ -7,7 +7,7 @@
 use strict;
 use warnings;
 
-#Subset 0 content
+#Subset 0 implementations
 
 #A THOUGHT FOR LATER:
 #to make it less computationally expensive separate by argument numbers so it doesn't have to analyse several if statements to execute
@@ -38,8 +38,32 @@ sub init {
 }
 
 #a function to add files to the .legit repository
+#create a subdirectory called index and store the files in here
+#assume inly files are input. Don't worry about directories
+#think about using function signatures?
 sub add {
 	
+
+}
+
+#commit adds the files in the index to the repository
+#in the repo maybe create multiple sub directories
+#if the index is empty then say nothing to commit.
+#empty the index after committing
+sub commit {
+
+}
+
+#have an array that stores every commit that has been made
+sub log {
+
+
+}
+
+
+sub show {
+
+
 
 }
 
