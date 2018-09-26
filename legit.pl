@@ -29,7 +29,7 @@ if ($ARGV[0] eq "init") {
 } elsif ($ARGV[0] eq "commit") {
 	my $message = $ARGV[2];
 
-	#need to pass in a refernce so that its changed outside of the function scope
+	#NOTE need to pass in a refernce so that its changed outside of the function scope
 	commit($message, @commit_array);
 
 	#print the commit array
@@ -51,27 +51,24 @@ if ($ARGV[0] eq "init") {
 }
 #SUBSET 0 subroutines:
 
-#A function to initialise the repository if required
+#A function to initialise the .legit repository if required
 sub init {
-	#initialise the subdirectory called .legit
-	#the subdirectory already exists print an error message and exit with error status
-	my $legit = ".legit";
-	my $index = ".index";
+#initialise the directory called .legit
+	#the directory already exists print an error message and exit with error status
+	my $legit = "legit";
+	my $index = "index";
 
 	if (-d "$legit") {
 		#print "exists\n";
 		print "$0: error: $legit already exists\n";
 	} else {
-	#create the subdirectory
+	#create the directory
 		#print ".legit does not exist\n";
 		mkdir "$legit";
 		print "Initialised empty legit repository in $legit\n";
 
-		#in addition, create subdirectory for add called .index for the add files
-		mkdir "./.legit/.index";
-
-		#index must be moved into the .legit directory for autotests to pass
-		#move "$index", "./.legit/.index";
+		#in addition, create subdirectory in .legit for add called .index for the add files
+		mkdir "./legit/index";
 		
 	}
 }
@@ -80,6 +77,8 @@ sub init {
 #assume only files are input. Don't worry about directories
 #think about using function signatures?
 sub add {
+
+	#WHAT IF THIS ARRAY IS EMPTY?
 	my (@add_files) = @_;
 	#print join "\n", @add_files;
 	#print "\nmoving the files into the .index directory\n";
@@ -87,18 +86,20 @@ sub add {
 		#print "element is $element\n";
 
 		#create a copy of the file
-		my $temp = ".".$element;
-		open my $TEMP, '>', $temp or die "unable to write to the $temp file: $?\n";
-		open my $FILE, '<', $element or die "unable to open $element: $?\n";
-		foreach my $line(<$FILE>) {
-			print $TEMP $line;
-		}	
+		#my $temp = ".".$element;
+		#open my $TEMP, '>', $temp or die "unable to write to the $temp file: $?\n";
+		#open my $FILE, '<', $element or die "unable to open $element: $?\n";
+		#foreach my $line(<$FILE>) {
+		#	print $TEMP $line;
+		#}	
 		#move that copy into the .index directory
-		my $dir = ".index";
-		move "$temp", "$dir";
 
-		close $TEMP;
-		close $FILE
+		#WHAT IF THE FILE IS ALREADY IN INDEX?
+		#move "$temp", "./legit/index";
+		copy $element, "./legit/index";
+
+		#close $TEMP;
+		#close $FILE
 	}
 }
 
@@ -108,10 +109,42 @@ sub add {
 #empty the index after committing
 sub commit {
 	my ($message, @commits) = @_;
-	print "$message\n";
-	#create an directory callled .commit.n where n = @commits+1
-	#move all the files in .index into .commit.n. Note move not copy
-	#move the .commit.n directory into the .legit directory
+	#print "$message\n";
+	#PLAN
+	#if no commits directory exists then create it. 
+	#if index is empty print an error message and die
+	#Go through all the commits in the directory until at the last one. 
+	#create a directory that has this form commit.n+1 where n was the num of the prev commit dir.
+
+	#check that the index has files it is able to commit
+	my $empty = 0;
+	foreach my $add_file(glob "./legit/index/*"){
+		$empty++;
+	}
+	if($empty == 0){
+		print "Nothing to commit\n" and exit 0;
+	}
+
+	#create a commits directory if it doesn't exist yet
+	unless(-d "./legit/commits"){	
+		mkdir "./legit/commits";
+
+	}
+
+	#determine the name/signature of the new commit directory and create it
+	my $num_dirs = 0;
+	foreach my $dir(glob "./legit/commits/*"){
+		$num_dirs++;
+	}
+	my $new_commit = "commit".".$num_dirs";
+	mkdir "./legit/commits/$new_commit";
+
+	#now move everything from index to this new directory.
+	foreach my $commit_file(glob "./legit/index/*"){
+		move $commit_file, "./legit/commits/$new_commit";
+	}
+
+	#now update the commits array with the message
 }
 
 #have an array that stores every commit's message in the corresponding commits message
