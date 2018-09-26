@@ -55,19 +55,24 @@ if ($ARGV[0] eq "init") {
 sub init {
 	#initialise the subdirectory called .legit
 	#the subdirectory already exists print an error message and exit with error status
-	if (-d ".legit") {
+	my $legit = ".legit";
+	my $index = ".index";
+
+	if (-d "$legit") {
 		#print "exists\n";
-		print "$0: error: .legit already exists\n";
+		print "$0: error: $legit already exists\n";
 	} else {
 	#create the subdirectory
 		#print ".legit does not exist\n";
-		mkdir ".legit";
-		print "Initialised empty legit repository in .legit\n";
+		mkdir "$legit";
+		print "Initialised empty legit repository in $legit\n";
 
 		#in addition, create subdirectory for add called .index for the add files
-		mkdir ".index";
-		#my $legit = ".legit";
-		#my $index = ".index";
+		mkdir "./.legit/.index";
+
+		#index must be moved into the .legit directory for autotests to pass
+		#move "$index", "./.legit/.index";
+		
 	}
 }
 
