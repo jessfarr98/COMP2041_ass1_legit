@@ -60,7 +60,7 @@ sub init {
 	#the directory already exists print an error message and exit with error status
 	if (-d "$legit") {
 		#print "exists\n";
-		print "$0: error: .legit already exists\n";
+		print "legit.pl: error: .legit already exists\n";
 	} else {
 	#create the directory
 		#print ".legit does not exist\n";
@@ -81,24 +81,58 @@ sub add {
 	my (@add_files) = @_;
 	#print join "\n", @add_files;
 	#print "\nmoving the files into the .index directory\n";
+
+	#if the .legit directory hasn't been created then print an error
+	unless(-d ".legit"){
+		print "legit.pl: error: no .legit directory containing legit repository exists\n";
+	}
+
 	while(my $element = shift @add_files){
 		#print "element is $element\n";
+		#if a file doesn't exist then don't add it
+		unless(-e "$element"){
+			print "legit.pl: error: can not open '$element'\n";
+			next;
+		} 
+		#if the file is empty then don't add it to the index
+		open my $F, '<', $element;
+		my $empty = 0;
+		my @element_array;
+		foreach my $line(<$F>){
+			push @element_array, $line;
+			$empty++;
+		}
+		#the file is empty, do not place it into the index
+		if($empty == 0){
+			next;
+		}
 
-		#create a copy of the file
-		#my $temp = ".".$element;
-		#open my $TEMP, '>', $temp or die "unable to write to the $temp file: $?\n";
-		#open my $FILE, '<', $element or die "unable to open $element: $?\n";
-		#foreach my $line(<$FILE>) {
-		#	print $TEMP $line;
-		#}	
-		#move that copy into the .index directory
+		close $F;
+		
+		#check if the file is in the most recent commit in the same state
+		my $num_coms = 0;
+		foreach my $commit(glob "./legit/commits/commit.*"){
+			$num_coms++;
+		}		
+		if($num_coms > 0){
+			#decrement to get to the most recent commit directory
+			$num_coms--;
+			my @prev_com;
+			foreach my $file(glob "./legit/commits/commit.$num_coms/*"){
+				if($file eq $element){
+					open $F, '<', $file;
+					foreach $line(<$F>){
+						push @prev_com, $line;
+					}
+				}
+			}
 
-		#WHAT IF THE FILE IS ALREADY IN INDEX?
-		#move "$temp", "./legit/index";
+			if(@prev_com eq @element_array){
+			#compare the files
+
+			}
+		}
 		copy $element, "./.legit/index";
-
-		#close $TEMP;
-		#close $FILE
 	}
 }
 
@@ -106,14 +140,10 @@ sub add {
 #in the repo maybe create multiple sub directories
 #if the index is empty then say nothing to commit.
 #empty the index after committing
+
+#COMMIT BUG: possibly need to add the files in the current directory that aren't in the index to the new commit??
 sub commit {
 	my ($message) = @_;
-	#print "$message\n";
-	#PLAN
-	#if no commits directory exists then create it. 
-	#if index is empty print an error message and die
-	#Go through all the commits in the directory until at the last one. 
-	#create a directory that has this form commit.n+1 where n was the num of the prev commit dir.
 
 	#check that the index has files it is able to commit
 	my $empty = 0;
@@ -139,7 +169,7 @@ sub commit {
 
 	#now move everything from index to this new directory.
 	foreach my $commit_file(glob "./.legit/index/*"){
-		move $commit_file, "./.legit/commits/$new_commit";
+		copy $commit_file, "./.legit/commits/$new_commit";
 	}
 
 	#print the message into its own file and place this file in the directory as a .txt file
@@ -148,7 +178,7 @@ sub commit {
 	open my $F, '>', $commit_message or die "cannot write to $commit_message: $?\n";
 	print $F "$message"."\n";
 
-	move $commit_message, "./.legit/commits/$new_commit";
+	move $commit_message, "./.legit/commits/$new_commit/";
 
 	close $F;
 	print "Committed as commit $num_dirs\n";
@@ -157,17 +187,26 @@ sub commit {
 
 #have an array that stores every commit's message in the corresponding commits message
 #print these messages 
+
+#TO DO: print the log in the reverse order
 sub legit_log {
 	#print all the commits and their messages
+
+	my @logs;
 	foreach my $commit (glob "./.legit/commits/commit.*/*"){
 		#print "$commit\n";
 	 	if($commit =~ "./.legit/commits/commit.([0-9]+)/commit_message.txt"){
 			open my $F, '<', $commit or die "can't open $commit: $?\n";
 			foreach my $line(<$F>){
-				print "$1 $line";
+				#print "$1 $line";
+				push @logs, "$1 $line";
 			}
 			close $F;
 		}
+	}
+
+	foreach my $element(reverse @logs){
+		print "$element";
 	}
 }
 
@@ -177,27 +216,33 @@ sub show {
 	if ($commit eq "") {
 	#go through the commits in the index and print the files contents
 		#print "empty\n";
-		foreach my $folder(glob "./.legit/index/*"){
-			if($folder =~ "./.legit/index/$file"){
-				open my $F, '<', $folder or die "can't open $folder: $?\n";
-				foreach my $line(<$F>){
-					print "$line";
-				}
-				close $F;
+		if(-e "./.legit/index/$file"){
+			open my $F, '<', "./.legit/index/$file" or die "can't open $file: $?\n";
+			foreach my $line(<$F>){
+				print "$line";
 			}
+			close $F;
+		}else{
+			print "legit.pl: error: '$file' not found in index\n"
+
 		}
 	} elsif ($commit =~ /[0-9]+/){
 	#go to the specified commit and print the specified commit
 		#print "num\n";
-		foreach my $folder (glob "./.legit/commits/commit.$commit/*"){
-			#print "$commit\n";
-	 		if($folder =~ "./.legit/commits/commit.([0-9]+)/$file"){
-				open my $F, '<', $folder or die "can't open $folder: $?\n";
-				foreach my $line(<$F>){
-					print "$line";
-				}
-				close $F;
+
+		unless(-d "./.legit/commits/commit.$commit"){
+			print "legit.pl: error: unknown commit '$commit'\n" and exit 0;
+		}
+
+		if(-e "./.legit/commits/commit.$commit/$file"){
+			open my $F, '<', "./.legit/commits/commit.$commit/$file" or die "can't open $file: $?\n";
+			foreach my $line(<$F>){
+				print "$line";
 			}
+			close $F;
+		}else{
+			print "legit.pl: error: '$file' not found in commit $commit\n"
+
 		}
 
 	} else {
