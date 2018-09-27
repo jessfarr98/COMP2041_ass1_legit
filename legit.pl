@@ -35,8 +35,13 @@ if ($ARGV[0] eq "init") {
 
 
 } elsif ($ARGV[0] eq "show") {
+	my $parameters = $ARGV[1];
+	my @params = split ':', $parameters;
+	#foreach (@params){
+	#	print "$_\n";
+	#}
 
-
+	show($params[0], $params[1]);
 
 } elsif ($ARGV[0] eq "rm") {
 
@@ -45,6 +50,7 @@ if ($ARGV[0] eq "init") {
 
 
 }
+
 #SUBSET 0 subroutines:
 
 #A function to initialise the .legit repository if required
@@ -159,17 +165,44 @@ sub legit_log {
 			open my $F, '<', $commit or die "can't open $commit: $?\n";
 			foreach my $line(<$F>){
 				print "$1 $line";
-
 			}
+			close $F;
 		}
 	}
 }
 
 #go to the specified commit directory in the .legit directory and print the specified files in the subsequent dir.
 sub show {
+	my ($commit, $file) = @_;
+	if ($commit eq "") {
+	#go through the commits in the index and print the files contents
+		#print "empty\n";
+		foreach my $folder(glob "./.legit/index/*"){
+			if($folder =~ "./.legit/index/$file"){
+				open my $F, '<', $folder or die "can't open $folder: $?\n";
+				foreach my $line(<$F>){
+					print "$line";
+				}
+				close $F;
+			}
+		}
+	} elsif ($commit =~ /[0-9]+/){
+	#go to the specified commit and print the specified commit
+		#print "num\n";
+		foreach my $folder (glob "./.legit/commits/commit.$commit/*"){
+			#print "$commit\n";
+	 		if($folder =~ "./.legit/commits/commit.([0-9]+)/$file"){
+				open my $F, '<', $folder or die "can't open $folder: $?\n";
+				foreach my $line(<$F>){
+					print "$line";
+				}
+				close $F;
+			}
+		}
 
-
-
+	} else {
+		print "invalid input, Usage: show <digit/empty string>:<filename>\n" and exit 0;
+	}
 }
 
 #SUBSET 1 subroutines
