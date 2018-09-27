@@ -14,8 +14,6 @@ use File::Copy;
 #to make it less computationally expensive separate by argument numbers so it doesn't have to analyse several if statements to execute
 
 #separate each command into functions in case they require each other's features
-my @commit_array;
-
 
 if ($ARGV[0] eq "init") {
 	init();
@@ -25,14 +23,12 @@ if ($ARGV[0] eq "init") {
 
 	add(@files);
 
-#NOTE: this needs an if for when there's -a included 
+#NOTE: this needs an if for when there -a flag is included 
 } elsif ($ARGV[0] eq "commit") {
 	my $message = $ARGV[2];
 
-	#NOTE need to pass in a refernce so that its changed outside of the function scope
-	commit($message, @commit_array);
+	commit($message);
 
-	#print the commit array
 
 } elsif ($ARGV[0] eq "log") {
 
@@ -53,22 +49,19 @@ if ($ARGV[0] eq "init") {
 
 #A function to initialise the .legit repository if required
 sub init {
-#initialise the directory called .legit
-	#the directory already exists print an error message and exit with error status
-	my $legit = "legit";
+	my $legit = ".legit";
 	my $index = "index";
-
+	#the directory already exists print an error message and exit with error status
 	if (-d "$legit") {
 		#print "exists\n";
-		print "$0: error: $legit already exists\n";
+		print "$0: error: .legit already exists\n";
 	} else {
 	#create the directory
 		#print ".legit does not exist\n";
 		mkdir "$legit";
-		print "Initialised empty legit repository in $legit\n";
-
-		#in addition, create subdirectory in .legit for add called .index for the add files
-		mkdir "./legit/index";
+		print "Initialized empty legit repository in .legit\n";
+		#in addition, create subdirectory in .legit for add called .index
+		mkdir "./.legit/index";
 		
 	}
 }
@@ -96,7 +89,7 @@ sub add {
 
 		#WHAT IF THE FILE IS ALREADY IN INDEX?
 		#move "$temp", "./legit/index";
-		copy $element, "./legit/index";
+		copy $element, "./.legit/index";
 
 		#close $TEMP;
 		#close $FILE
@@ -108,7 +101,7 @@ sub add {
 #if the index is empty then say nothing to commit.
 #empty the index after committing
 sub commit {
-	my ($message, @commits) = @_;
+	my ($message) = @_;
 	#print "$message\n";
 	#PLAN
 	#if no commits directory exists then create it. 
@@ -118,33 +111,42 @@ sub commit {
 
 	#check that the index has files it is able to commit
 	my $empty = 0;
-	foreach my $add_file(glob "./legit/index/*"){
+	foreach my $add_file(glob "./.legit/index/*"){
 		$empty++;
 	}
 	if($empty == 0){
-		print "Nothing to commit\n" and exit 0;
+		print "nothing to commit\n" and exit 0;
 	}
 
 	#create a commits directory if it doesn't exist yet
-	unless(-d "./legit/commits"){	
-		mkdir "./legit/commits";
-
+	unless(-d "./.legit/commits"){	
+		mkdir "./.legit/commits";
 	}
 
 	#determine the name/signature of the new commit directory and create it
 	my $num_dirs = 0;
-	foreach my $dir(glob "./legit/commits/*"){
+	foreach my $dir(glob "./.legit/commits/*"){
 		$num_dirs++;
 	}
 	my $new_commit = "commit".".$num_dirs";
-	mkdir "./legit/commits/$new_commit";
+	mkdir "./.legit/commits/$new_commit";
 
 	#now move everything from index to this new directory.
-	foreach my $commit_file(glob "./legit/index/*"){
-		move $commit_file, "./legit/commits/$new_commit";
+	foreach my $commit_file(glob "./.legit/index/*"){
+		move $commit_file, "./.legit/commits/$new_commit";
 	}
 
-	#now update the commits array with the message
+	#print the message into its own file and place this file in the directory as a .txt file
+	my $commit_message = "commit_message.txt";
+
+	open my $F, '>', $commit_message or die "cannot write to $commit_message: $?\n";
+	print $F "$message"."\n";
+
+	move $commit_message, "./.legit/commits/$new_commit";
+
+	close $F;
+	print "Committed as commit $num_dirs\n";
+
 }
 
 #have an array that stores every commit's message in the corresponding commits message
