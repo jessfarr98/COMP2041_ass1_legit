@@ -31,7 +31,7 @@ if ($ARGV[0] eq "init") {
 
 
 } elsif ($ARGV[0] eq "log") {
-
+	legit_log();
 
 
 } elsif ($ARGV[0] eq "show") {
@@ -151,9 +151,18 @@ sub commit {
 
 #have an array that stores every commit's message in the corresponding commits message
 #print these messages 
-sub log {
+sub legit_log {
+	#print all the commits and their messages
+	foreach my $commit (glob "./.legit/commits/commit.*/*"){
+		#print "$commit\n";
+	 	if($commit =~ "./.legit/commits/commit.([0-9]+)/commit_message.txt"){
+			open my $F, '<', $commit or die "can't open $commit: $?\n";
+			foreach my $line(<$F>){
+				print "$1 $line";
 
-
+			}
+		}
+	}
 }
 
 #go to the specified commit directory in the .legit directory and print the specified files in the subsequent dir.
