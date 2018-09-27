@@ -8,6 +8,11 @@ use strict;
 use warnings;
 use File::Copy;
 
+#TO DO LIST:
+#fix add so it doesn't add files that have been committed
+#think of test cases that cover the edge cases
+#start subset 1
+
 #Subset 0 implementations
 
 #A THOUGHT FOR LATER:
@@ -88,7 +93,7 @@ sub add {
 	}
 
 	while(my $element = shift @add_files){
-		#print "element is $element\n";
+		#print "element is '$element'\n";
 		#if a file doesn't exist then don't add it
 		unless(-e "$element"){
 			print "legit.pl: error: can not open '$element'\n";
@@ -98,40 +103,66 @@ sub add {
 		open my $F, '<', $element;
 		my $empty = 0;
 		my @element_array;
-		foreach my $line(<$F>){
+		foreach my $line (<$F>) {
 			push @element_array, $line;
 			$empty++;
 		}
 		#the file is empty, do not place it into the index
-		if($empty == 0){
+		if ($empty == 0) {
 			next;
 		}
 
 		close $F;
-		
+
 		#check if the file is in the most recent commit in the same state
 		my $num_coms = 0;
-		foreach my $commit(glob "./legit/commits/commit.*"){
+		foreach my $commit (glob "./.legit/commits/commit.*") {
 			$num_coms++;
-		}		
-		if($num_coms > 0){
-			#decrement to get to the most recent commit directory
+		}
+		#print "num coms is $num_coms\n";		
+		if ($num_coms > 0) {
+			#print "num coms = $num_coms greater than 0\n";
+			#decrement to get to get the most recent commit directory
 			$num_coms--;
 			my @prev_com;
-			foreach my $file(glob "./legit/commits/commit.$num_coms/*"){
-				if($file eq $element){
+			foreach my $file (glob "./.legit/commits/commit.$num_coms/*") {
+				#load into the array for comparison
+				#print "'$file'"."\n";
+				my @dir_of_file = split '/', $file;
+				my $regex = $dir_of_file[$#dir_of_file];
+				#print "$regex\n";
+
+				if ($regex =~ /^$element$/) {
+					#print "equals\n";
 					open $F, '<', $file;
-					foreach $line(<$F>){
+					foreach my $line (<$F>) {
 						push @prev_com, $line;
 					}
+					close $F;
 				}
 			}
 
-			if(@prev_com eq @element_array){
-			#compare the files
-
+			if (@prev_com eq @element_array) {
+			#compare the files since the length of the files are the same
+				my $diff = 0;
+				foreach my $i (0..$#element_array) {
+					#print "prev $prev_com[$i]";
+					#print "new $element_array[$i]";
+					if($prev_com[$i] ne $element_array[$i] || $element_array[$i] != $prev_com[$i]){
+						#print "prev $prev_com[$i]";
+						$diff = 1;
+						last;
+					}
+				}
+				#print "$diff\n";
+				if($diff == 0){
+					unlink ".legit/index/$element";
+					next;
+					#$dont_add = 1;
+				}
 			}
 		}
+
 		copy $element, "./.legit/index";
 	}
 }
