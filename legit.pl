@@ -28,9 +28,12 @@ if ($ARGV[0] eq "init") {
 
 	add(@files);
 
-#NOTE: this needs an if for when there -a flag is included 
+ 
 } elsif ($ARGV[0] eq "commit") {
-
+	#print "$ARGV[1]\n";
+	if($ARGV[1] =~ /[^(\-a)(\-m)]/){
+		print "usage: legit.pl commit [-a] -m commit-message\n" and exit 0;
+	}
 	if(@ARGV == 3){
 		my $message = $ARGV[2];
 
@@ -42,18 +45,10 @@ if ($ARGV[0] eq "init") {
 		#go through the index, create a list of the files in the index
 		my @index_files;
 		foreach my $path (glob "./.legit/index/*") {
-			#add
-			#print "iterating\n";
-			#my $copy_file;
-			
-			#copy $path, $copy_file;
-			#print "$copy_file\n";
 			my @dirs = split '/', $path;
 			my $file_name = $dirs[$#dirs];
-			#print "$file_name\n";
 			push @index_files, $file_name;
 		}
-
 
 		add(@index_files);
 		commit($message);
@@ -63,21 +58,32 @@ if ($ARGV[0] eq "init") {
 
 
 } elsif ($ARGV[0] eq "show") {
+	#error checking: incorrect input
+	if (@ARGV == 1) {
+		print "usage: legit.pl show <commit>:<filename>\n" and exit 0;
+	}
+	if ($ARGV[1] !~ /.*:.*/) {
+		print "legit.pl: error: invalid object $ARGV[1]\n" and exit 0;
+	}
 	my $parameters = $ARGV[1];
 	my @params = split ':', $parameters;
-	#foreach (@params){
-	#	print "$_\n";
-	#}
 
 	show($params[0], $params[1]);
 
 } elsif ($ARGV[0] eq "rm") {
-	#if(){
+	if($ARGV[1] eq "--cached"){
+	#remove the files from the index only
 
-	#} elsif () {
+	} elsif ($ARGV[1] eq "--force") {
+	#ignore all error checking
 
-	#}
+	} else {
+	#error message if removing a file in the current directory thats different to the last commit
+	#error message if removing a file from the index if different to the last commit
 
+
+
+	}
 } elsif ($ARGV[0] eq "status") {
 
 
@@ -128,15 +134,9 @@ sub add {
 		} 
 		#if the file is empty then don't add it to the index
 		open my $F, '<', $element;
-		my $empty = 0;
 		my @element_array;
 		foreach my $line (<$F>) {
 			push @element_array, $line;
-			$empty++;
-		}
-		#the file is empty, do not place it into the index
-		if ($empty == 0) {
-			next;
 		}
 
 		close $F;
@@ -208,11 +208,6 @@ sub add {
 }
 
 #commit adds the files in the index to the repository
-#in the repo maybe create multiple sub directories
-#if the index is empty then say nothing to commit.
-#empty the index after committing
-
-#COMMIT BUG: possibly need to add the files in the current directory that aren't in the index to the new commit??
 sub commit {
 	my ($message) = @_;
 
@@ -316,14 +311,15 @@ sub show {
 
 		}
 
-	} else {
-		print "invalid input, Usage: show <digit/empty string>:<filename>\n" and exit 0;
-	}
+	} #else {
+		#print "invalid input, Usage: show <digit/empty string>:<filename>\n" and exit 0;
+	#}
 }
 
 #SUBSET 1 subroutines
+sub legit_rm {
+	
 
-
-
+}
 
 
