@@ -24,6 +24,9 @@ if ($ARGV[0] eq "init") {
 	init();
 
 } elsif ($ARGV[0] eq "add") {
+	if (@ARGV == 1) {
+		print "legit.pl: error: internal error Nothing specified, nothing added.\n" and exit 0;
+	}
 	my @files = @ARGV[1..$#ARGV];
 
 	add(@files);
@@ -55,7 +58,6 @@ if ($ARGV[0] eq "init") {
 	}
 } elsif ($ARGV[0] eq "log") {
 	legit_log();
-
 
 } elsif ($ARGV[0] eq "show") {
 	#error checking: incorrect input
@@ -179,19 +181,21 @@ sub add {
 					#	$diff = 1;
 					#	last;
 					#}
-					if ($prev_com[$i] =~ /[^0-9]+/) {
+					#print "hi\n";
+					#if ($prev_com[$i] =~ /^[0-9]+$/) {
 					#lexicographical comparison
-						if($prev_com[$i] ne $element_array[$i]){
-							$diff = 1;
-							last;
-						}
-					}else{
-						if($element_array[$i] != $prev_com[$i]){
-							#print "prev $prev_com[$i]";
-							$diff = 1;
-							last;
-						}
+						
+					#	if($prev_com[$i] != $element_array[$i]){
+					#		$diff = 1;
+					#		last;
+					#	}
+					#}else{
+					if($element_array[$i] ne $prev_com[$i]){
+						#print "prev $prev_com[$i]";
+						$diff = 1;
+						last;
 					}
+					#}
 					
 				}
 				#print "$diff\n";
@@ -317,8 +321,31 @@ sub show {
 }
 
 #SUBSET 1 subroutines
-sub legit_rm {
-	
+
+
+#THINK ABOUT breaking into two subroutines for index or current  dir
+sub legit_rm{
+#PLAN:
+#the paramenters are a list of the files to be removed, a variable to flag if force remove and a list of directories to remove from
+#if force remove just remove the file from index 	
+#otherwise have to go through the index 
+	my (@directories, @files, $force) = @_;
+
+	if ($force == 1) {
+	#remove the files from the directories regardless of being committed
+		my $dir;
+		#foreach my $
+
+
+	} else {
+	#remove the files if it is safe
+
+	}
+}
+
+sub legit_rm_current {
+
+
 
 }
 
