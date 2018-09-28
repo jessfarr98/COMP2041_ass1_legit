@@ -9,14 +9,11 @@ use warnings;
 use File::Copy;
 
 #TO DO LIST:
-#fix add so it doesn't add files that have been committed
-#think of test cases that cover the edge cases
-#start subset 1
+#think of test cases that cover the edge cases. Complete subset 0 test cases
+#COMMIT functionality. If a file is not present in the current directory then do not commit it? 
+#plan/start status
 
 #Subset 0 implementations
-
-#A THOUGHT FOR LATER:
-#to make it less computationally expensive separate by argument numbers so it doesn't have to analyse several if statements to execute
 
 #separate each command into functions in case they require each other's features
 
@@ -34,14 +31,13 @@ if ($ARGV[0] eq "init") {
  
 } elsif ($ARGV[0] eq "commit") {
 	#print "$ARGV[1]\n";
-	if($ARGV[1] =~ /[^(\-a)(\-m)]/){
+	if ($ARGV[1] =~ /[^(\-a)(\-m)]/) {
 		print "usage: legit.pl commit [-a] -m commit-message\n" and exit 0;
-	}
-	if(@ARGV == 3){
+	} if (@ARGV == 3) {
 		my $message = $ARGV[2];
 
 		commit($message);
-	}else{
+	} else {
 		#cause all the files already in the index to have the most recent versions of the files added
 		#print("-a flag\n");
 		my $message = $ARGV[3];
@@ -73,18 +69,41 @@ if ($ARGV[0] eq "init") {
 	show($params[0], $params[1]);
 
 } elsif ($ARGV[0] eq "rm") {
-	if($ARGV[1] eq "--cached"){
+	if ($ARGV[1] eq "--force" && $ARGV[2] eq "--cached") {
+		#print "force cache rm\n";
+		my @directories = ("./.legit/index");
+		my @files = @ARGV[3..$#ARGV];
+		my $f = 1;
+		legit_rm($f, \@directories, \@files);
+		exit 0;
+	}
+	if ($ARGV[1] eq "--cached") {
 	#remove the files from the index only
-
+		#print "cache rm\n";
+		my @directories = ("./.legit/index");
+		my @files = @ARGV[2..$#ARGV];
+		my $f = 0;
+		legit_rm($f, \@directories, \@files);
 	} elsif ($ARGV[1] eq "--force") {
 	#ignore all error checking
-
+		#print "removing with force\n";
+		#directories, files, force
+		#print "force rm \n";
+		my @directories = ("./.legit/index",".");
+		my @files = @ARGV[2..$#ARGV];
+		#print "@files\n";
+		my $f = 1;
+		#print "$f\n";
+		#array references are required for multiple array beig passed into to the array
+		legit_rm($f, \@directories, \@files);
 	} else {
 	#error message if removing a file in the current directory thats different to the last commit
 	#error message if removing a file from the index if different to the last commit
-
-
-
+		#print "rm with safety\n";
+		my @directories = ("./.legit/index", ".");
+		my @files = @ARGV[1..$#ARGV];
+		my $f = 0;
+		legit_rm($f, \@directories, \@files);
 	}
 } elsif ($ARGV[0] eq "status") {
 
@@ -123,14 +142,14 @@ sub add {
 	#print "\nmoving the files into the .index directory\n";
 
 	#if the .legit directory hasn't been created then print an error
-	unless(-d ".legit"){
+	unless (-d ".legit") {
 		print "legit.pl: error: no .legit directory containing legit repository exists\n";
 	}
 
-	while(my $element = shift @add_files){
+	while (my $element = shift @add_files) {
 		#print "element is '$element'\n";
 		#if a file doesn't exist then don't add it
-		unless(-e "$element"){
+		unless (-e "$element") {
 			print "legit.pl: error: can not open '$element'\n";
 			next;
 		} 
@@ -190,7 +209,7 @@ sub add {
 					#		last;
 					#	}
 					#}else{
-					if($element_array[$i] ne $prev_com[$i]){
+					if ($element_array[$i] ne $prev_com[$i]) {
 						#print "prev $prev_com[$i]";
 						$diff = 1;
 						last;
@@ -199,7 +218,7 @@ sub add {
 					
 				}
 				#print "$diff\n";
-				if($diff == 0){
+				if ($diff == 0) {
 					unlink ".legit/index/$element";
 					next;
 					#$dont_add = 1;
@@ -217,28 +236,28 @@ sub commit {
 
 	#check that the index has files it is able to commit
 	my $empty = 0;
-	foreach my $add_file(glob "./.legit/index/*"){
+	foreach my $add_file (glob "./.legit/index/*") {
 		$empty++;
 	}
-	if($empty == 0){
+	if ($empty == 0) {
 		print "nothing to commit\n" and exit 0;
 	}
 
 	#create a commits directory if it doesn't exist yet
-	unless(-d "./.legit/commits"){	
+	unless (-d "./.legit/commits") {	
 		mkdir "./.legit/commits";
 	}
 
 	#determine the name/signature of the new commit directory and create it
 	my $num_dirs = 0;
-	foreach my $dir(glob "./.legit/commits/*"){
+	foreach my $dir (glob "./.legit/commits/*") {
 		$num_dirs++;
 	}
 	my $new_commit = "commit".".$num_dirs";
 	mkdir "./.legit/commits/$new_commit";
 
 	#now move everything from index to this new directory.
-	foreach my $commit_file(glob "./.legit/index/*"){
+	foreach my $commit_file (glob "./.legit/index/*") {
 		copy $commit_file, "./.legit/commits/$new_commit";
 	}
 
@@ -257,17 +276,15 @@ sub commit {
 
 #have an array that stores every commit's message in the corresponding commits message
 #print these messages 
-
-#TO DO: print the log in the reverse order
 sub legit_log {
 	#print all the commits and their messages
 
 	my @logs;
-	foreach my $commit (glob "./.legit/commits/commit.*/*"){
+	foreach my $commit (glob "./.legit/commits/commit.*/*") {
 		#print "$commit\n";
-	 	if($commit =~ "./.legit/commits/commit.([0-9]+)/commit_message.txt"){
+	 	if ($commit =~ "./.legit/commits/commit.([0-9]+)/commit_message.txt") {
 			open my $F, '<', $commit or die "can't open $commit: $?\n";
-			foreach my $line(<$F>){
+			foreach my $line (<$F>) {
 				#print "$1 $line";
 				push @logs, "$1 $line";
 			}
@@ -275,7 +292,7 @@ sub legit_log {
 		}
 	}
 
-	foreach my $element(reverse @logs){
+	foreach my $element (reverse @logs) {
 		print "$element";
 	}
 }
@@ -286,13 +303,13 @@ sub show {
 	if ($commit eq "") {
 	#go through the commits in the index and print the files contents
 		#print "empty\n";
-		if(-e "./.legit/index/$file"){
+		if (-e "./.legit/index/$file") {
 			open my $F, '<', "./.legit/index/$file" or die "can't open $file: $?\n";
-			foreach my $line(<$F>){
+			foreach my $line (<$F>) {
 				print "$line";
 			}
 			close $F;
-		}else{
+		} else {
 			print "legit.pl: error: '$file' not found in index\n"
 
 		}
@@ -300,17 +317,17 @@ sub show {
 	#go to the specified commit and print the specified commit
 		#print "num\n";
 
-		unless(-d "./.legit/commits/commit.$commit"){
+		unless (-d "./.legit/commits/commit.$commit") {
 			print "legit.pl: error: unknown commit '$commit'\n" and exit 0;
 		}
 
-		if(-e "./.legit/commits/commit.$commit/$file"){
+		if (-e "./.legit/commits/commit.$commit/$file") {
 			open my $F, '<', "./.legit/commits/commit.$commit/$file" or die "can't open $file: $?\n";
 			foreach my $line(<$F>){
 				print "$line";
 			}
 			close $F;
-		}else{
+		} else {
 			print "legit.pl: error: '$file' not found in commit $commit\n"
 
 		}
@@ -329,24 +346,86 @@ sub legit_rm{
 #the paramenters are a list of the files to be removed, a variable to flag if force remove and a list of directories to remove from
 #if force remove just remove the file from index 	
 #otherwise have to go through the index 
-	my (@directories, @files, $force) = @_;
+	#TRY: array references to stop the array concatonating
+	my ($f, $directories, $files) = @_;
+	#print "printing directories\n";
+	#print join "\n", @$directories;
 
-	if ($force == 1) {
+	#print "\nprinting files\n@$files\n";
+	#print $f."\n";
+	if ($f eq 1) {
 	#remove the files from the directories regardless of being committed
-		my $dir;
-		#foreach my $
+		foreach my $directory (@$directories) {
+			#print "dir is $directory\n";
+			if ($directory eq ".") {
+			#remove the specified files from the current directory
+				#print "remove from the current directory\n";
+				foreach my $file (@$files) {
+					#print "$file\n";
+					unlink $file;
 
-
+				}
+			} else {
+			#remove the specified files in the index
+				foreach my $file (@$files) {
+					#print "$file\n";
+					unlink "./.legit/index/$file";
+				}
+			}			
+		}
 	} else {
 	#remove the files if it is safe
+		foreach my $directory (@$directories) {
+			#print "dir is $directory\n";
+			if ($directory eq ".") {
+			#remove the specified files from the current directory if the file exists in the last commit
+				#go through the commits and find the last commit
+				my $num_coms = 0;
+				foreach my $commit (glob "./.legit/commits/commit.*") {
+					$num_coms++;
+				}
+				$num_coms--;
+				if ($num_coms >= 0) {
+					#check if the file exists in the commit
+					foreach my $file (@$files) {
+						foreach my $com (glob "./.legit/commits/commit.*/*") {
+							my @commit_paths = split '/', $com;
+							my $com_file = $commit_paths[$#commit_paths];
+							#print "$com_file\n";
+							if ($com_file eq $file) {
 
+								unlink $file;
+								last;
+							}
+						}
+					}
+
+				}
+			} else {
+			#remove the specified files in the index if the file exists in the last commit
+				my $num_coms = 0;
+				foreach my $commit (glob "./.legit/commits/commit.*") {
+					$num_coms++;
+				}
+				$num_coms--;
+				if ($num_coms >= 0) {
+					#check if the file exists in the commit
+					foreach my $file (@$files) {
+						foreach my $com (glob "./.legit/commits/commit.*/*") {
+							my @commit_paths = split '/', $com;
+							my $com_file = $commit_paths[$#commit_paths];
+							#print "$com_file\n";
+							if ($com_file eq $file) {
+								unlink "./.legit/index/$file";
+								last;
+							}
+						}
+					}
+
+				}
+			}			
+		}
 	}
-}
-
-sub legit_rm_current {
-
-
-
 }
 
 
