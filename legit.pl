@@ -30,11 +30,34 @@ if ($ARGV[0] eq "init") {
 
 #NOTE: this needs an if for when there -a flag is included 
 } elsif ($ARGV[0] eq "commit") {
-	my $message = $ARGV[2];
 
-	commit($message);
+	if(@ARGV == 3){
+		my $message = $ARGV[2];
+
+		commit($message);
+	}else{
+		#cause all the files already in the index to have the most recent versions of the files added
+		#print("-a flag\n");
+		my $message = $ARGV[3];
+		#go through the index, create a list of the files in the index
+		my @index_files;
+		foreach my $path (glob "./.legit/index/*") {
+			#add
+			#print "iterating\n";
+			#my $copy_file;
+			
+			#copy $path, $copy_file;
+			#print "$copy_file\n";
+			my @dirs = split '/', $path;
+			my $file_name = $dirs[$#dirs];
+			#print "$file_name\n";
+			push @index_files, $file_name;
+		}
 
 
+		add(@index_files);
+		commit($message);
+	}
 } elsif ($ARGV[0] eq "log") {
 	legit_log();
 
@@ -49,7 +72,11 @@ if ($ARGV[0] eq "init") {
 	show($params[0], $params[1]);
 
 } elsif ($ARGV[0] eq "rm") {
+	#if(){
 
+	#} elsif () {
+
+	#}
 
 } elsif ($ARGV[0] eq "status") {
 
@@ -148,11 +175,24 @@ sub add {
 				foreach my $i (0..$#element_array) {
 					#print "prev $prev_com[$i]";
 					#print "new $element_array[$i]";
-					if($prev_com[$i] ne $element_array[$i] || $element_array[$i] != $prev_com[$i]){
-						#print "prev $prev_com[$i]";
-						$diff = 1;
-						last;
+					#if ($element_array[$i] != $prev_com[$i]) {
+					#	$diff = 1;
+					#	last;
+					#}
+					if ($prev_com[$i] =~ /[^0-9]+/) {
+					#lexicographical comparison
+						if($prev_com[$i] ne $element_array[$i]){
+							$diff = 1;
+							last;
+						}
+					}else{
+						if($element_array[$i] != $prev_com[$i]){
+							#print "prev $prev_com[$i]";
+							$diff = 1;
+							last;
+						}
 					}
+					
 				}
 				#print "$diff\n";
 				if($diff == 0){
