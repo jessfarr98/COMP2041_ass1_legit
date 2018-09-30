@@ -10,6 +10,8 @@ use File::Copy;
 
 #TO DO LIST:
 #think of test cases that cover the edge cases. Complete subset 0 test cases
+#COMMIT BUG: commits when supposed to say nothing to commit. This is because you only copy from the index now
+#REASSESS FUNCTIONALITY
 #COMMIT functionality. If a file is not present in the current directory then do not commit it? 
 #plan/start status
 
@@ -188,9 +190,9 @@ sub add {
 					}
 					close $F;
 				}
-			}
+			
 
-			if (@prev_com eq @element_array) {
+			} if (@prev_com eq @element_array) {
 			#compare the files since the length of the files are the same
 				my $diff = 0;
 				foreach my $i (0..$#element_array) {
@@ -218,11 +220,12 @@ sub add {
 					
 				}
 				#print "$diff\n";
-				if ($diff == 0) {
-					unlink ".legit/index/$element";
-					next;
+				#if ($diff == 0) {
+					#print "unlink\n";
+				#	unlink ".legit/index/$element";
+				#	next;
 					#$dont_add = 1;
-				}
+				#}
 			}
 		}
 
@@ -231,15 +234,21 @@ sub add {
 }
 
 #commit adds the files in the index to the repository
+
+#COMMIT NEW FUNCTIONALITY
+#if there are no files in the index nothing to commit
+#if a file in index has been changed then commit all the files in the index
+#if none of the files have been changed print nothing to commit
+
 sub commit {
 	my ($message) = @_;
-
+	#print "committing\n";
 	#check that the index has files it is able to commit
-	my $empty = 0;
+	my $num_index_files = 0;
 	foreach my $add_file (glob "./.legit/index/*") {
-		$empty++;
+		$num_index_files++;
 	}
-	if ($empty == 0) {
+	if ($num_index_files == 0) {
 		print "nothing to commit\n" and exit 0;
 	}
 
@@ -253,25 +262,101 @@ sub commit {
 	foreach my $dir (glob "./.legit/commits/*") {
 		$num_dirs++;
 	}
-	my $new_commit = "commit".".$num_dirs";
-	mkdir "./.legit/commits/$new_commit";
 
-	#now move everything from index to this new directory.
-	foreach my $commit_file (glob "./.legit/index/*") {
-		copy $commit_file, "./.legit/commits/$new_commit";
+	#check that the files in the index that are able to be commited have been changed
+	my %dont_add;
+	my $recent = $num_dirs-1;
+	#print "recent directory is $recent\n";
+	foreach my $recent_commit (glob "./.legit/commits/commit.$recent/*") {
+		foreach my $index_file (glob "./.legit/index/*") {
+			my @coms = split '/', $recent_commit;
+			my $com_file = $coms[$#coms];
+			my @inds = split '/', $index_file;
+			my $ind = $inds[$#inds];
+			#check the files are different
+			if ($ind eq $com_file) {
+				open my $F, '<', $recent_commit;
+				open my $INDEX, '<', $index_file;
+				my @com_lines;
+				my @index_lines;
+				#load file lines into arrays
+				foreach my $com_line (<$F>){
+					#print "com_line is $com_line\n";
+					push @com_lines, $com_line;
+				}
+				foreach  my $ind_line (<$INDEX>) {
+					#print "ind_line is $ind_line\n";
+					push @index_lines, $ind_line;
+				}
+				my $diff = 0;
+				#same length, check that the files have been edited
+				if (@index_lines != @com_lines) {
+					$diff = 1;
+
+				} else {
+					foreach my $i (0..$#index_lines) {
+						if ($index_lines[$i] ne $com_lines[$i]) {
+							#print "the diff lines are $index_lines[$i]\n";
+							$diff = 1;
+							last;
+						}
+					}
+				}
+				close $F;	
+				close $INDEX;
+				#add the index path name the dont_add hash
+				if ($diff == 0) {
+					#print "$index_file\n";
+					$dont_add{$index_file}++;
+				}
+			}
+		}
+	}
+	#if the dont_add hash is not the same length as the index array then add all the files in the index
+	my $size_hash = keys %dont_add;
+	if ($size_hash != $num_index_files) {
+	#add all the index files
+		my $new_commit = "commit".".$num_dirs";
+		mkdir "./.legit/commits/$new_commit";
+
+		foreach my $commit_file (glob "./.legit/index/*") {
+			copy $commit_file, "./.legit/commits/$new_commit";
+		}
+
+		my $commit_message = "commit_message.txt";
+
+		open my $F, '>', $commit_message or die "cannot write to $commit_message: $?\n";
+		print $F "$message"."\n";
+		move $commit_message, "./.legit/commits/$new_commit/";
+		close $F;
+
+		print "Committed as commit $num_dirs\n";
+	} else {
+	#nothing to commit
+		print "nothing to commit\n";
 	}
 
-	#print the message into its own file and place this file in the directory as a .txt file
-	my $commit_message = "commit_message.txt";
+	#now move everything from index to this new directory.
+	#my $commit_occurred = 0;
+	#my $new_commit = "commit".".$num_dirs";
+	#foreach my $commit_file (glob "./.legit/index/*") {
+	#	if ($dont_add{$commit_file} && $dont_add{$commit_file} > 0) {
+	#		next;
+	#	} else {
+	#		if ($commit_occurred == 0) {
+	#			mkdir "./.legit/commits/$new_commit";
+	#		}
+	#		$commit_occurred = 1;
+	#		copy $commit_file, "./.legit/commits/$new_commit";
+	#	}
+	#}
 
-	open my $F, '>', $commit_message or die "cannot write to $commit_message: $?\n";
-	print $F "$message"."\n";
-
-	move $commit_message, "./.legit/commits/$new_commit/";
-
-	close $F;
-	print "Committed as commit $num_dirs\n";
-
+	#if ($commit_occurred == 1) {
+		#print the message into its own file and place this file in the directory as a .txt file
+		
+	#} else {
+		
+	#}
 }
 
 #have an array that stores every commit's message in the corresponding commits message
@@ -323,7 +408,7 @@ sub show {
 
 		if (-e "./.legit/commits/commit.$commit/$file") {
 			open my $F, '<', "./.legit/commits/commit.$commit/$file" or die "can't open $file: $?\n";
-			foreach my $line(<$F>){
+			foreach my $line (<$F>) {
 				print "$line";
 			}
 			close $F;
