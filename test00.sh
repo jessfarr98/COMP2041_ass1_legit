@@ -3,8 +3,8 @@
 #a simple subset0 test that tests the multiple possible behaviours of adding empty files and files with content.
 
 touch test1 test2 test3
-echo "line 1"  > test1
-echo "line 1" > test2
+echo "test 1 line 1"  > test1
+echo "test 2 line 1" > test2
 chmod 755 ./legit.pl
 ./legit.pl init
 #adding many files at a time, one of which is empty
@@ -26,8 +26,11 @@ echo 1 > test4
 ./legit.pl commit -m "add numerical file"
 ./legit.pl add test4
 ./legit.pl commit -m "test4 should not be committed"
-./legit.pl show 3:test4
+./legit.pl show 2:test4
 ./legit.pl add
+#adding a file that doesn't exist
+./legit.pl add not_exist
+./legit.pl log
 
 #clean the directory 
 rm test1 test2 test3 test4

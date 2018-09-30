@@ -34,14 +34,21 @@ if ($ARGV[0] eq "init") {
 } elsif ($ARGV[0] eq "commit") {
 	#print "$ARGV[1]\n";
 	if ($ARGV[1] =~ /[^(\-a)(\-m)]/) {
+		print "syntax\n";
 		print "usage: legit.pl commit [-a] -m commit-message\n" and exit 0;
-	} if (@ARGV == 3) {
+	} if ($ARGV[1] eq "-m") {
+		if (@ARGV != 3) {
+			print "usage: legit.pl commit [-a] -m commit-message\n" and exit 0;
+		}
 		my $message = $ARGV[2];
 
 		commit($message);
-	} else {
+	} elsif ($ARGV[1] eq "-a") {
 		#cause all the files already in the index to have the most recent versions of the files added
 		#print("-a flag\n");
+		if (@ARGV != 4) {
+			print "usage: legit.pl commit [-a] -m commit-message\n" and exit 0;
+		}
 		my $message = $ARGV[3];
 		#go through the index, create a list of the files in the index
 		my @index_files;
@@ -53,7 +60,10 @@ if ($ARGV[0] eq "init") {
 
 		add(@index_files);
 		commit($message);
-	}
+	} else {
+		print "usage: legit.pl commit [-a] -m commit-message\n" and exit 0;
+
+	} 
 } elsif ($ARGV[0] eq "log") {
 	legit_log();
 
@@ -506,7 +516,6 @@ sub legit_rm{
 							}
 						}
 					}
-
 				}
 			}			
 		}

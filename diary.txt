@@ -1,0 +1,3 @@
+My notes and progress can be found in my GitHub repository:
+
+https://github.com/jessfarr98/COMP2041_ass1_legit/commits/master
