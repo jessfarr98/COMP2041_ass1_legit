@@ -37,6 +37,7 @@ echo "line 2" >> test1
 ./legit.pl add test4
 
 #test the possible input errors
+./legit.pl commit
 ./legit.pl commit -y "non-existent flag"
 #just the -m flag
 ./legit.pl commit -m
@@ -46,8 +47,9 @@ echo "line 2" >> test1
 ./legit.pl commit -a "invalid"
 ./legit.pl commit --a -m "invalid"
 ./legit.pl commit -a -m
-
 ./legit.pl log
+
+#error message when the .legit rep hasn't been initialised
 
 rm test1 test2 test3 test4
 rm -rf .legit

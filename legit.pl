@@ -32,9 +32,14 @@ if ($ARGV[0] eq "init") {
 
  
 } elsif ($ARGV[0] eq "commit") {
+	unless (-e ".legit") {
+		print "legit.pl: error: no .legit directory containing legit repository exists\n";
+	}
 	#print "$ARGV[1]\n";
+	if (@ARGV <= 1) {
+		print "usage: legit.pl commit [-a] -m commit-message\n" and exit 0;
+	}
 	if ($ARGV[1] =~ /[^(\-a)(\-m)]/) {
-		print "syntax\n";
 		print "usage: legit.pl commit [-a] -m commit-message\n" and exit 0;
 	} if ($ARGV[1] eq "-m") {
 		if (@ARGV != 3) {
@@ -68,6 +73,13 @@ if ($ARGV[0] eq "init") {
 	legit_log();
 
 } elsif ($ARGV[0] eq "show") {
+	#erro checking: no commits made yet
+	unless (-e ".legit") {
+		print "legit.pl: error: no .legit directory containing legit repository exists\n";
+	}
+	unless (-e ".legit/commits") {
+		print "legit.pl: error: your repository does not have any commits yet\n" and exit 0;
+	}
 	#error checking: incorrect input
 	if (@ARGV == 1) {
 		print "usage: legit.pl show <commit>:<filename>\n" and exit 0;
@@ -254,6 +266,9 @@ sub commit {
 	my ($message) = @_;
 	#print "committing\n";
 	#check that the index has files it is able to commit
+
+
+
 	my $num_index_files = 0;
 	foreach my $add_file (glob "./.legit/index/*") {
 		$num_index_files++;
@@ -427,9 +442,9 @@ sub show {
 
 		}
 
-	} #else {
-		#print "invalid input, Usage: show <digit/empty string>:<filename>\n" and exit 0;
-	#}
+	} elsif ($commit =~ /[^0-9]/) {
+		print "legit.pl: error: unknown commit '$commit'\n" and exit 0;
+	}
 }
 
 #SUBSET 1 subroutines
