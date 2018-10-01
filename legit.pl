@@ -10,9 +10,7 @@ use File::Copy;
 
 #TO DO LIST:
 #think of test cases that cover the edge cases. Complete subset 0 test cases
-#COMMIT BUG: commits when supposed to say nothing to commit. This is because you only copy from the index now
-#REASSESS FUNCTIONALITY
-#COMMIT functionality. If a file is not present in the current directory then do not commit it? 
+#error printing for most commands
 #plan/start status
 
 #Subset 0 implementations
@@ -33,7 +31,7 @@ if ($ARGV[0] eq "init") {
  
 } elsif ($ARGV[0] eq "commit") {
 	unless (-e ".legit") {
-		print "legit.pl: error: no .legit directory containing legit repository exists\n";
+		print "legit.pl: error: no .legit directory containing legit repository exists\n" and exit 0;
 	}
 	#print "$ARGV[1]\n";
 	if (@ARGV <= 1) {
@@ -70,12 +68,18 @@ if ($ARGV[0] eq "init") {
 
 	} 
 } elsif ($ARGV[0] eq "log") {
+	unless (-e ".legit") {
+		print "legit.pl: error: no .legit directory containing legit repository exists\n" and exit 0;
+	}
+	unless (-e ".legit/commits") {
+		print "legit.pl: error: your repository does not have any commits yet\n" and exit 0;
+	}
 	legit_log();
 
 } elsif ($ARGV[0] eq "show") {
 	#erro checking: no commits made yet
 	unless (-e ".legit") {
-		print "legit.pl: error: no .legit directory containing legit repository exists\n";
+		print "legit.pl: error: no .legit directory containing legit repository exists\n" and exit 0;
 	}
 	unless (-e ".legit/commits") {
 		print "legit.pl: error: your repository does not have any commits yet\n" and exit 0;
