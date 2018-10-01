@@ -22,7 +22,7 @@ if ($ARGV[0] eq "init") {
 
 } elsif ($ARGV[0] eq "add") {
 	if (@ARGV == 1) {
-		print "legit.pl: error: internal error Nothing specified, nothing added.\n" and exit 0;
+		print "legit.pl: error: internal error Nothing specified, nothing added.\n" and exit 1;
 	}
 	my @files = @ARGV[1..$#ARGV];
 
@@ -31,17 +31,17 @@ if ($ARGV[0] eq "init") {
  
 } elsif ($ARGV[0] eq "commit") {
 	unless (-e ".legit") {
-		print "legit.pl: error: no .legit directory containing legit repository exists\n" and exit 0;
+		print "legit.pl: error: no .legit directory containing legit repository exists\n" and exit 1;
 	}
 	#print "$ARGV[1]\n";
 	if (@ARGV <= 1) {
-		print "usage: legit.pl commit [-a] -m commit-message\n" and exit 0;
+		print "usage: legit.pl commit [-a] -m commit-message\n" and exit 1;
 	}
 	if ($ARGV[1] =~ /[^(\-a)(\-m)]/) {
-		print "usage: legit.pl commit [-a] -m commit-message\n" and exit 0;
+		print "usage: legit.pl commit [-a] -m commit-message\n" and exit 1;
 	} if ($ARGV[1] eq "-m") {
 		if (@ARGV != 3) {
-			print "usage: legit.pl commit [-a] -m commit-message\n" and exit 0;
+			print "usage: legit.pl commit [-a] -m commit-message\n" and exit 1;
 		}
 		my $message = $ARGV[2];
 
@@ -50,7 +50,10 @@ if ($ARGV[0] eq "init") {
 		#cause all the files already in the index to have the most recent versions of the files added
 		#print("-a flag\n");
 		if (@ARGV != 4) {
-			print "usage: legit.pl commit [-a] -m commit-message\n" and exit 0;
+			print "usage: legit.pl commit [-a] -m commit-message\n" and exit 1;
+		}
+		unless ($ARGV[2] eq "-m") {
+			print "usage: legit.pl commit [-a] -m commit-message\n" and exit 1;
 		}
 		my $message = $ARGV[3];
 		#go through the index, create a list of the files in the index
@@ -64,32 +67,32 @@ if ($ARGV[0] eq "init") {
 		add(@index_files);
 		commit($message);
 	} else {
-		print "usage: legit.pl commit [-a] -m commit-message\n" and exit 0;
+		print "usage: legit.pl commit [-a] -m commit-message\n" and exit 1;
 
 	} 
 } elsif ($ARGV[0] eq "log") {
 	unless (-e ".legit") {
-		print "legit.pl: error: no .legit directory containing legit repository exists\n" and exit 0;
+		print "legit.pl: error: no .legit directory containing legit repository exists\n" and exit 1;
 	}
 	unless (-e ".legit/commits") {
-		print "legit.pl: error: your repository does not have any commits yet\n" and exit 0;
+		print "legit.pl: error: your repository does not have any commits yet\n" and exit 1;
 	}
 	legit_log();
 
 } elsif ($ARGV[0] eq "show") {
 	#erro checking: no commits made yet
 	unless (-e ".legit") {
-		print "legit.pl: error: no .legit directory containing legit repository exists\n" and exit 0;
+		print "legit.pl: error: no .legit directory containing legit repository exists\n" and exit 1;
 	}
 	unless (-e ".legit/commits") {
-		print "legit.pl: error: your repository does not have any commits yet\n" and exit 0;
+		print "legit.pl: error: your repository does not have any commits yet\n" and exit 1;
 	}
 	#error checking: incorrect input
 	if (@ARGV == 1) {
-		print "usage: legit.pl show <commit>:<filename>\n" and exit 0;
+		print "usage: legit.pl show <commit>:<filename>\n" and exit 1;
 	}
 	if ($ARGV[1] !~ /.*:.*/) {
-		print "legit.pl: error: invalid object $ARGV[1]\n" and exit 0;
+		print "legit.pl: error: invalid object $ARGV[1]\n" and exit 1;
 	}
 	my $parameters = $ARGV[1];
 	my @params = split ':', $parameters;
@@ -97,13 +100,20 @@ if ($ARGV[0] eq "init") {
 	show($params[0], $params[1]);
 
 } elsif ($ARGV[0] eq "rm") {
+	unless (-e ".legit") {
+		print "legit.pl: error: no .legit directory containing legit repository exists\n" and exit 1;
+	}
+	unless (-e ".legit/commits") {
+		print "legit.pl: error: your repository does not have any commits yet\n" and exit 1;
+	}
+
 	if ($ARGV[1] eq "--force" && $ARGV[2] eq "--cached") {
 		#print "force cache rm\n";
 		my @directories = ("./.legit/index");
 		my @files = @ARGV[3..$#ARGV];
 		my $f = 1;
 		legit_rm($f, \@directories, \@files);
-		exit 0;
+		exit 1;
 	}
 	if ($ARGV[1] eq "--cached") {
 	#remove the files from the index only
@@ -278,7 +288,7 @@ sub commit {
 		$num_index_files++;
 	}
 	if ($num_index_files == 0) {
-		print "nothing to commit\n" and exit 0;
+		print "nothing to commit\n" and exit 1;
 	}
 
 	#create a commits directory if it doesn't exist yet
@@ -432,7 +442,7 @@ sub show {
 		#print "num\n";
 
 		unless (-d "./.legit/commits/commit.$commit") {
-			print "legit.pl: error: unknown commit '$commit'\n" and exit 0;
+			print "legit.pl: error: unknown commit '$commit'\n" and exit 1;
 		}
 
 		if (-e "./.legit/commits/commit.$commit/$file") {
@@ -447,7 +457,7 @@ sub show {
 		}
 
 	} elsif ($commit =~ /[^0-9]/) {
-		print "legit.pl: error: unknown commit '$commit'\n" and exit 0;
+		print "legit.pl: error: unknown commit '$commit'\n" and exit 1;
 	}
 }
 
