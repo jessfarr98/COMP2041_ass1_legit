@@ -7,9 +7,9 @@ echo "test1 line 1" > test1
 echo "test2 line 1" > test2
 echo "test3 line 1" > test3
 chmod 755 ./legit.pl
-./legit.pl add test1 test2  #correct
-./legit.pl commit -m "first"		#correct
-./legit.pl show 0:test1		#correct
+./legit.pl add test1 test2
+./legit.pl commit -m "first"
+./legit.pl show 0:test1	
 ./legit.pl log
 ./legit.pl add test3
 ./legit.pl commit -m
