@@ -8,9 +8,10 @@ echo "test2 line 1" > test2
 echo "test3 line 1" > test3
 echo "test4 line 1" > test4
 echo "test5 line 1" > test5
+echo "test6 line 1" > test6
 chmod 755 ./legit.pl
 ./legit.pl init
-./legit.pl add test1 test2 test5
+./legit.pl add test1 test2 test5 test6
 ./legit.pl commit -m "first"
 ./legit.pl show 0:test1
 ./legit.pl show 0:test2
@@ -42,8 +43,8 @@ echo ""
 ls
 ls .legit/index
 ./legit.pl show 1:test3
-#rm a file that has been committed in a commit that was not the previous commit
-
+#rm a file that has been committed in a commit that was not in the previous commit
+./legit.pl rm test6
 
 #error testing
 
@@ -82,11 +83,9 @@ echo "test1 recreated" > test1
 echo "test1 new line" >> test1
 ./legit.pl rm test1
 
-#when a file has been removed with unix rm then added the file gets removed from the index
-
-
 #when no commits have occurred
-
+rm -rf.legit
+./legit.pl rm test1
 
 rm -rf .legit
 #rm test2
