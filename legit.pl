@@ -8,19 +8,10 @@ use strict;
 use warnings;
 use File::Copy;
 
-#TO DO LIST:
-#test06, test07, test08, test09
-#error printing for rm AKA PASS TEST14
-#code cleanup
-#commenting
-
 if ($ARGV[0] eq "init") {
 	init();
 
 } elsif ($ARGV[0] eq "add") {
-	if (@ARGV == 1) {
-		print "legit.pl: error: internal error Nothing specified, nothing added.\n" and exit 1;
-	}
 	my @files = @ARGV[1..$#ARGV];
 
 	add(@files);
@@ -43,7 +34,7 @@ if ($ARGV[0] eq "init") {
 
 		commit($message);
 	} elsif ($ARGV[1] eq "-a") {
-		#cause all the files already in the index to have the most recent versions of the files added
+		#cause all the files already in the index to have the most recent versions of the files in cur dir added
 		if (@ARGV != 4) {
 			print "usage: legit.pl commit [-a] -m commit-message\n" and exit 1;
 		}
@@ -66,6 +57,7 @@ if ($ARGV[0] eq "init") {
 
 	} 
 } elsif ($ARGV[0] eq "log") {
+	#error checking
 	unless (-e ".legit") {
 		print "legit.pl: error: no .legit directory containing legit repository exists\n" and exit 1;
 	}
@@ -95,6 +87,7 @@ if ($ARGV[0] eq "init") {
 	show($params[0], $params[1]);
 
 } elsif ($ARGV[0] eq "rm") {
+	#error checking
 	unless (-e ".legit") {
 		print "legit.pl: error: no .legit directory containing legit repository exists\n" and exit 1;
 	}
@@ -102,13 +95,22 @@ if ($ARGV[0] eq "init") {
 		print "legit.pl: error: your repository does not have any commits yet\n" and exit 1;
 	}
 
-	if (($ARGV[1] eq "--cached" && $ARGV[2] eq "--force") || ($ARGV[1] eq "--force" && $ARGV[2] eq "--cached") ) {
-		my @directories = ("./.legit/index");
-		my @files = @ARGV[3..$#ARGV];
-		my $f = 1;
-		legit_rm($f, \@directories, \@files);
-		exit 1;
-	}
+	if (@ARGV > 3) {
+		if ($ARGV[1] eq "--cached" && $ARGV[2] eq "--force") {
+		#cached and forced simultaneously
+			my @directories = ("./.legit/index");
+			my @files = @ARGV[3..$#ARGV];
+			my $f = 1;
+			legit_rm($f, \@directories, \@files);
+			exit 1;
+		} elsif ($ARGV[1] eq "--force" && $ARGV[2] eq "--cached") {
+			my @directories = ("./.legit/index");
+			my @files = @ARGV[3..$#ARGV];
+			my $f = 1;
+			legit_rm($f, \@directories, \@files);
+			exit 1;
+		}
+	} 
 	if ($ARGV[1] eq "--cached") {
 	#remove the files from the index only
 		my @directories = ("./.legit/index");
@@ -123,9 +125,10 @@ if ($ARGV[0] eq "init") {
 		my $f = 1;
 		#array references are required for multiple array beig passed into to the array
 		legit_rm($f, \@directories, \@files);
+	} elsif ($ARGV[1] =~ /\-/) {
+		print "usage: legit.pl rm [--force] [--cached] <filenames>\n" and exit 1;
 	} else {
-	#error message if removing a file in the current directory thats different to the last commit
-	#error message if removing a file from the index if different to the last commit
+	#remove files with caution
 		my @directories = (".", "./.legit/index");
 		my @files = @ARGV[1..$#ARGV];
 		my $f = 0;
@@ -148,11 +151,9 @@ sub init {
 		print "Initialized empty legit repository in .legit\n";
 		#in addition, create subdirectory in .legit for add called .index
 		mkdir "./.legit/index";
-		
 	}
 }
 
-#create a subdirectory called index and store the files in here
 #assume only files are input. Don't worry about directories
 sub add {
 
@@ -163,95 +164,19 @@ sub add {
 	}
 
 	while (my $element = shift @add_files) {
-		#print "element is '$element'\n";
-		#if a file doesn't exist then don't add it
 		unless (-e "$element") {
-			#if the file doesn't exist in the directory or the repo print can't open
-			#if the file has been committed anywhere in the 
+			#add removed files
 			if (-e ".legit/index/$element") {	
-				#remove the file from the index and the
+				#remove the file from the index
 				unlink "./.legit/index/$element";
 				next;
 			} else {
+				#file doesn't exist
 				print "legit.pl: error: can not open '$element'\n";
 				next;
 			}
-			
-		} 
-		#if the file is empty then don't add it to the index
-		open my $F, '<', $element;
-		my @element_array;
-		foreach my $line (<$F>) {
-			push @element_array, $line;
-		}
-
-		close $F;
-
-		#check if the file is in the most recent commit in the same state
-		my $num_coms = 0;
-		foreach my $commit (glob "./.legit/commits/commit.*") {
-			$num_coms++;
-		}
-		#print "num coms is $num_coms\n";		
-		if ($num_coms > 0) {
-			#print "num coms = $num_coms greater than 0\n";
-			#decrement to get to get the most recent commit directory
-			$num_coms--;
-			my @prev_com;
-			foreach my $file (glob "./.legit/commits/commit.$num_coms/*") {
-				#load into the array for comparison
-				#print "'$file'"."\n";
-				my @dir_of_file = split '/', $file;
-				my $regex = $dir_of_file[$#dir_of_file];
-				#print "$regex\n";
-
-				if ($regex =~ /^$element$/) {
-					#print "equals\n";
-					open $F, '<', $file;
-					foreach my $line (<$F>) {
-						push @prev_com, $line;
-					}
-					close $F;
-				}
-			
-
-			} if (@prev_com eq @element_array) {
-			#compare the files since the length of the files are the same
-				my $diff = 0;
-				foreach my $i (0..$#element_array) {
-					#print "prev $prev_com[$i]";
-					#print "new $element_array[$i]";
-					#if ($element_array[$i] != $prev_com[$i]) {
-					#	$diff = 1;
-					#	last;
-					#}
-					#print "hi\n";
-					#if ($prev_com[$i] =~ /^[0-9]+$/) {
-					#lexicographical comparison
-						
-					#	if($prev_com[$i] != $element_array[$i]){
-					#		$diff = 1;
-					#		last;
-					#	}
-					#}else{
-					if ($element_array[$i] ne $prev_com[$i]) {
-						#print "prev $prev_com[$i]";
-						$diff = 1;
-						last;
-					}
-					#}
-					
-				}
-				#print "$diff\n";
-				#if ($diff == 0) {
-					#print "unlink\n";
-				#	unlink ".legit/index/$element";
-				#	next;
-					#$dont_add = 1;
-				#}
-			}
-		}
-
+		} 		
+		#copy the file into the index
 		copy $element, "./.legit/index";
 	}
 }
@@ -288,7 +213,7 @@ sub commit {
 			#print "$c\n";
 			$num_com_files++;
 		}
-		#because of the extra commit message decrement
+		#because of the extra commit message, decrement
 		$num_com_files--;
 		if ($num_com_files != $num_index_files) {
 		#commit since there are new files in the directory
@@ -445,7 +370,6 @@ sub show {
 			close $F;
 		} else {
 			print "legit.pl: error: '$file' not found in commit $commit\n"
-
 		}
 
 	} elsif ($commit =~ /[^0-9]/) {
@@ -455,26 +379,27 @@ sub show {
 
 #SUBSET 1 subroutines
 
-
 sub legit_rm{
 	my ($f, $directories, $files) = @_;
 
 	if ($f eq 1) {
 	#remove the files from the directories regardless of being committed
 		foreach my $directory (@$directories) {
-			#print "dir is $directory\n";
 			if ($directory eq ".") {
 			#remove the specified files from the current directory
-				#print "remove from the current directory\n";
 				foreach my $file (@$files) {
-					#print "$file\n";
+					unless (-e ".legit/index/$file") {
+						print "legit.pl: error: '$file' is not in the legit repository\n" and exit 1;
+					}
 					unlink $file;
 
 				}
 			} else {
 			#remove the specified files in the index
 				foreach my $file (@$files) {
-					#print "$file\n";
+					unless (-e ".legit/index/$file") {
+						print "legit.pl: error: '$file' is not in the legit repository\n" and exit 1;
+					}
 					unlink "./.legit/index/$file";
 				}
 			}			
@@ -482,12 +407,7 @@ sub legit_rm{
 	} else {
 	#remove the files if it is safe
 		foreach my $directory (@$directories) {
-			#print "dir is $directory\n";
-			#my $index_curr;
-			#my $com_curr;
-			#my $ind_curr;
 			if ($directory eq ".") {
-				#print "current direceoty\n";
 			#remove the specified files from the current directory if the file exists in the last commit
 				#go through the commits and find the last commit
 				my $num_coms = 0;
@@ -496,7 +416,6 @@ sub legit_rm{
 				}
 				$num_coms--;
 				if ($num_coms >= 0) {
-					#print "num coms is $num_coms\n";
 					#check if the file exists in the commit
 					foreach my $file (@$files) {
 						unless (-e ".legit/index/$file") {
@@ -506,121 +425,82 @@ sub legit_rm{
 						my $in_commit = 0;
 						my $curr_diff = 0;
 						my $diff_index = 0;
-						#print "$file\n";
 						foreach my $com (glob "./.legit/commits/commit.$num_coms/*") {
 							my @commit_paths = split '/', $com;
 							my $com_file = $commit_paths[$#commit_paths];
-							#print "file is $com_file\n";
-							if ($com_file eq $file) {
-								#$in_commit = 1;
-								open my $F, '<', $file or die "can't open $file\n";
-								open my $COM, '<', "./.legit/commits/commit.$num_coms/$com_file" or die "can't open $com_file\n";
-								open my $IND, '<', "./.legit/index/$file" or die "can't open index $file\n";
-								#my $diff = 0;
-								my @cur;
-								my @commit;
-								my @indx;
-								#see if the current file is different to the committed file
-								foreach my $line (<$F>) {
-									#print "cur dir $line\n";
-									push @cur, $line;
-								}
-								foreach my $lin_e (<$COM>) {
-									#print "com dir $lin_e\n";
-									push @commit, $lin_e;
-								}
-								foreach my $li_ne (<$IND>) {
-									#print "indxfile $li_ne\n";
-									push @indx, $li_ne;
-								}
-								
-								
-								if (@cur != @commit) {
-									$curr_diff = 1;
-								} else {
-									#print "comparing cur and commit";
-									foreach my $i (0 .. $#cur) {
-										#print "cur $cur[$i]\n";
-						
-										if ($cur[$i] ne $commit[$i]) {
-											$curr_diff = 1;
-										}
-									}
-								}
 
-								if (@indx == @commit) {
-									foreach my $j (0 .. $#indx) {
-										#print "cur $cur[$i]\n";
-										if ($commit[$j] ne $indx[$j]) {
-											$in_commit = 1;
-										}
-									}
-
-								} else {
-									$in_commit = 1;
-								}
-								
-								#if ($curr_diff == 1) {
-									#print "legit.pl: error: '$file' in repository is different to working file\n" and exit 1;
-									#check different to the index now 
-									#my $diff_index = 0;
-								#if (-e ".legit/index/$file") {
-									#open my $IND, '<', "./.legit/index/$file" or die "can't open $file\n";
-								if (@indx != @cur) {
-										#print "diff length\n";
-										$diff_index = 1;
-								} else {
-									foreach my $k (0 ..$#indx) {
-										#chomp $commi[$i];
-										#print "curr is $commit[$i]\n";
-										#print "ind is $ind[$i]\n";
-										if ($cur[$k] ne $indx[$k]) {
-											$diff_index = 1;
-										}
-									}
-								}
-							
-								close $F;
-								close $COM;
-								close $IND;	
-							#}
-
-										
-								
-								#unlink $file;
-							last;
+							open my $F, '<', $file or die "can't open $file\n";
+							open my $COM, '<', "./.legit/commits/commit.$num_coms/$com_file" or die "can't open $com_file\n";
+							open my $IND, '<', "./.legit/index/$file" or die "can't open index $file\n";
+							my @cur;
+							my @commit;
+							my @indx;
+							#see if the current file is different to the committed file
+							foreach my $line (<$F>) {
+								push @cur, $line;
 							}
+							foreach my $lin_e (<$COM>) {
+								push @commit, $lin_e;
+							}
+							foreach my $li_ne (<$IND>) {
+								push @indx, $li_ne;
+							}
+								
+							if (@cur != @commit) {
+								$curr_diff = 1;
+							} else {
+								foreach my $i (0 .. $#cur) {
+									if ($cur[$i] ne $commit[$i]) {
+										$curr_diff = 1;
+									}
+								}
+							}
+
+							if (@indx == @commit) {
+								foreach my $j (0 .. $#indx) {
+									if ($commit[$j] ne $indx[$j]) {
+										$in_commit = 1;
+									}
+								}
+							} else {
+								$in_commit = 1;
+							}
+								
+							if (@indx != @cur) {
+								$diff_index = 1;
+							} else {
+								foreach my $k (0 ..$#indx) {
+									if ($cur[$k] ne $indx[$k]) {
+										$diff_index = 1;
+									}
+								}
+							}
+							
+							close $F;
+							close $COM;
+							close $IND;	
+																						
+							last;
 						}
-						#print "diff_index (curr_index) is $diff_index\n";
-						#print "curr_diff (curr commit) is $curr_diff\n";
-						#print "in_commit (index commit) is $in_commit\n";
 						#if commit and index are different
 						#curr_diff is curr and commit
 						#diff index is curr and index
 						if ($diff_index == 1  && $curr_diff == 1  && $in_commit == 0 ) {
 							#index and commit are the same and diff to curr
 							#commit and index same but cur diff
-							print "legit.pl: error: '$file' in repository is different to working file\n" and exit 1;
-
-						 
+							print "legit.pl: error: '$file' in repository is different to working file\n" and exit 1;						 
 						#in_commit is commit and index
 						#curr_diff is curr and commit
 						#diff_index is curr and index
 						} elsif ($in_commit == 1 && $curr_diff == 1 && $diff_index == 0) {
-							#print "legit.pl: error: '$file' has changes staged in the index\n" and exit 1;
-							#go through index dir and do the same thing
-							#print "yep\n";
-							#if (-e ".legit/index/$file") {
 							#index and curr same but commit diff
 							print "legit.pl: error: '$file' has changes staged in the index\n" and exit 1;
-							#}
 						} elsif ($in_commit == 1 && $curr_diff == 1 && $diff_index == 1) {
 							#all three repos are diff
-							print "legit.pl: error: '$file' in index is different to both working file and repository\n" and exit 1;
 
-						} 
-						unlink $file;
-						
+						} else {
+							unlink $file;
+						}
 					}
 					
 				}
@@ -635,19 +515,76 @@ sub legit_rm{
 					#check if the file exists in the commit
 					foreach my $file (@$files) {
 						unless (-e ".legit/index/$file") {
-							#print "fuck\n";
 							print "legit.pl: error: '$file' is not in the legit repository\n" and exit 1;
 						}
-
+						my $in_commit = 0;
+						my $curr_diff = 0;
+						my $diff_index = 0;
 						foreach my $com (glob "./.legit/commits/commit.*/*") {
 							my @commit_paths = split '/', $com;
 							my $com_file = $commit_paths[$#commit_paths];
-							#print "$com_file\n";
 							if ($com_file eq $file) {
-								unlink "./.legit/index/$file";
+								open my $F, '<', $file or die "can't open cache $file\n";
+								open my $COM, '<', "./.legit/commits/commit.$num_coms/$com_file" or die "can't open $com_file\n";
+								open my $IND, '<', "./.legit/index/$file" or die "can't open index $file\n";
+								my @cur;
+								my @commit;
+								my @indx;
+								#see if the current file is different to the committed file
+								foreach my $line (<$F>) {
+									push @cur, $line;
+								}
+								foreach my $lin_e (<$COM>) {
+									push @commit, $lin_e;
+								}
+								foreach my $li_ne (<$IND>) {
+									push @indx, $li_ne;
+								}
+								
+								
+								if (@cur != @commit) {
+									$curr_diff = 1;
+								} else {
+									foreach my $i (0 .. $#cur) {					
+										if ($cur[$i] ne $commit[$i]) {
+											$curr_diff = 1;
+										}
+									}
+								}
+								if (@indx == @commit) {
+									foreach my $j (0 .. $#indx) {
+										if ($commit[$j] ne $indx[$j]) {
+											$in_commit = 1;
+										}
+									}
+								} else {
+									$in_commit = 1;
+								}
+								if (@indx != @cur) {
+									$diff_index = 1;
+								} else {
+									foreach my $k (0 ..$#indx) {
+										if ($cur[$k] ne $indx[$k]) {
+											$diff_index = 1;
+										}
+									}
+								}
+							
+								close $F;
+								close $COM;
+								close $IND;	
+											
 								last;
 							}
 						}
+						#outside loop now
+
+						if ($in_commit == 1 && $curr_diff == 1 && $diff_index == 1) {
+							#all three repos are diff
+							print "legit.pl: error: '$file' in index is different to both working file and repository\n" and exit 1;
+
+						} 
+							unlink "./.legit/index/$file";
 					}
 				}
 			}			
